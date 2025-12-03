@@ -34,7 +34,7 @@ PACKAGE "Облачный провайдер Yandex Cloud" as CloudProvider {
 
   PACKAGE "Виртуальные машины [Terraform]" as Infrastructure <<terraform>> {
 
-    PACKAGE "ВМ: Платформа данных" as VM_Platform <<terraform>> {
+    PACKAGE "ВМ: Общая платформа" as VM_Platform <<terraform>> {
       component "DataHub Server" as VM_DataHub <<terraform>>
       component "Dremio Server" as VM_Dremio <<terraform>>
       component "Keycloak Server" as VM_IAM <<terraform>>

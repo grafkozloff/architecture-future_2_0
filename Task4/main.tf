@@ -153,7 +153,7 @@ resource "random_id" "bucket_suffix" {
   byte_length = 8
 }
 
-# ВМ: Платформа данных
+# ВМ: Общая платформа
 resource "yandex_compute_instance" "datahub" {
   name        = "datahub-server"
   platform_id = "standard-v3"
