@@ -1,0 +1,143 @@
+@startuml
+!define RECTANGLE rectangle
+!define PACKAGE package
+
+skinparam backgroundColor #FEFEFE
+skinparam component {
+  BackgroundColor<<terraform>> #e1f5fe
+  BorderColor<<terraform>> #01579b
+  BackgroundColor<<manual>> #fff3e0
+  BorderColor<<manual>> #e65100
+  BackgroundColor<<managed>> #e8f5e8
+  BorderColor<<managed>> #1b5e20
+}
+
+title Диаграмма развертывания инфраструктуры
+
+PACKAGE "Облачный провайдер Yandex Cloud" as CloudProvider {
+
+  PACKAGE "Сетевые компоненты [Terraform]" as Network <<terraform>> {
+    component "VPC Network" as VPC <<terraform>>
+    component "Подсеть main-subnet" as SubnetA <<terraform>>
+    component "Security Group: external" as SG_External <<terraform>>
+    component "Security Group: internal" as SG_Internal <<terraform>>
+    component "NAT Gateway" as NAT <<terraform>>
+    component "Load Balancer" as LB <<terraform>>
+  }
+
+  PACKAGE "Управляемые сервисы [Terraform]" as ManagedServices <<managed>> {
+    component "Managed Kafka" as MK <<managed>>
+    component "Managed PostgreSQL" as MPS <<managed>>
+    component "S3 Bucket" as S3 <<managed>>
+    component "S3 Object Storage" as ObjectStorage <<managed>>
+  }
+
+  PACKAGE "Виртуальные машины [Terraform]" as Infrastructure <<terraform>> {
+
+    PACKAGE "ВМ: Общая платформа" as VM_Platform <<terraform>> {
+      component "DataHub Server" as VM_DataHub <<terraform>>
+      component "Dremio Server" as VM_Dremio <<terraform>>
+      component "Keycloak Server" as VM_IAM <<terraform>>
+    }
+
+    PACKAGE "ВМ: Бизнес-домены" as VM_Domains <<terraform>> {
+      component "Медицинские сервисы" as VM_Medical <<terraform>>
+      component "Финтех-сервисы" as VM_Fintech <<terraform>>
+      component "ИИ-сервисы" as VM_AI <<terraform>>
+    }
+
+    PACKAGE "ВМ: Портал самообслуживания" as VM_Portal <<terraform>> {
+      component "Portal Application" as VM_Portal_App <<terraform>>
+      component "Power BI Server" as VM_BI <<terraform>>
+    }
+  }
+
+  PACKAGE "Компоненты ручной настройки [Manual]" as ManualComponents <<manual>> {
+
+    PACKAGE "DataHub конфигурация" as DataHub_Setup <<manual>> {
+      component "Коннекторы к источникам" as DH_Connectors <<manual>>
+      component "Настройка lineage" as DH_Lineage <<manual>>
+      component "Политики доступа к доменам" as DH_Policies <<manual>>
+    }
+
+    PACKAGE "Keycloak конфигурация" as IAM_Setup <<manual>> {
+      component "Realm для каждого домена" as KC_Realms <<manual>>
+      component "OAuth2 клиенты" as KC_Clients <<manual>>
+      component "RBAC роли по доменам" as KC_Roles <<manual>>
+    }
+
+    PACKAGE "Kafka конфигурация" as Kafka_Setup <<manual>> {
+      component "Топики по доменам" as K_Topics <<manual>>
+      component "Schema Registry" as K_Schemas <<manual>>
+      component "ACL для доменов" as K_ACL <<manual>>
+    }
+
+    PACKAGE "Конфигурация приложений" as Application_Setup <<manual>> {
+      component "Конфиг медицинских сервисов" as APP_Medical <<manual>>
+      component "Конфиг финтех-сервисов" as APP_Fintech <<manual>>
+      component "Конфиг ИИ-сервисов" as APP_AI <<manual>>
+      component "Конфиг портала" as APP_Portal <<manual>>
+    }
+
+    PACKAGE "Настройка БД" as Database_Setup <<manual>> {
+      component "Схемы данных по доменам" as DB_Schemas <<manual>>
+      component "Пользователи и права" as DB_Users <<manual>>
+      component "Политики резервного копирования" as DB_Backup <<manual>>
+    }
+  }
+}
+
+' Связи между сетевыми компонентами
+VPC --> SubnetA
+VPC --> SG_External
+VPC --> SG_Internal
+VPC --> NAT
+VPC --> LB
+
+' Связи подсети с компонентами
+SubnetA --> VM_Platform
+SubnetA --> VM_Domains
+SubnetA --> VM_Portal
+SubnetA --> ManagedServices
+
+' Связи Security Groups
+SG_External --> LB
+SG_External --> VM_Portal_App
+SG_Internal --> VM_Platform
+SG_Internal --> VM_Domains
+SG_Internal --> ManagedServices
+
+' Связи Load Balancer
+LB --> VM_Portal_App
+LB --> VM_Medical
+LB --> VM_Fintech
+
+' Связи конфигураций с сервисами
+VM_DataHub --> DataHub_Setup
+VM_IAM --> IAM_Setup
+MK --> Kafka_Setup
+MPS --> Database_Setup
+
+' Связи приложений с их конфигурациями
+VM_Medical --> APP_Medical
+VM_Fintech --> APP_Fintech
+VM_AI --> APP_AI
+VM_Portal_App --> APP_Portal
+
+' Взаимосвязи между сервисами
+VM_Platform --> MPS
+VM_Domains --> MPS
+VM_Domains --> MK
+VM_Portal --> MPS
+VM_DataHub --> S3
+VM_Dremio --> S3
+VM_Dremio --> ObjectStorage
+
+' Легенда
+PACKAGE "Легенда развертывания" as Legend {
+  component "Terraform\nИнфраструктура как код" as L1 <<terraform>>
+  component "Manual\nРучная настройка/конфигурация" as L2 <<manual>>
+  component "Managed\nУправляемый сервис" as L3 <<managed>>
+}
+
+@enduml
